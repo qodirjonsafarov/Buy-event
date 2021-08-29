@@ -23,8 +23,7 @@ class Db:
                           tovar varchar(50),
                           price varchar(20),
                           dt varchar(10),
-                          cust_id integer,
-                          foreign key (cust_id) references customer(id)
+                          customer_name varchar(20),
                           primary key(id_))
                           ''')
 
@@ -34,14 +33,14 @@ class Db:
                           primary key(id_))
                           ''')
         data_tuple = [nom, number, email]
-        data_tuple2 = [tovar, price, dt]
+        data_tuple2 = [tovar, price, dt, nom]
         data_tuple3 = [errors]
 
         q1 = """INSERT INTO customer(nom, tel, email) 
         VALUES (?, ?, ?);"""
 
-        q2 = """INSERT INTO shoping (tovar, price, dt)
-        VALUES (?, ?, ?);"""
+        q2 = """INSERT INTO shoping (tovar, price, dt, customer_name)
+        VALUES (?, ?, ?, ?);"""
 
         q3 = """INSERT INTO errors (errors)
                 VALUES (?);"""
@@ -69,27 +68,34 @@ def send_mess():
     import datetime
     # Заполнение глобалних переменних
     global sender, recipients
-    subject = 'ВАШ РАСХОД'
+    subject = 'Хароҷоти шумо'
     nom = input('Введите имя клиента: ')
-    tovar = input('Введите имя товараов: например телефон, наушники: ').split(',')
-    price = input('Введите стоимост товаров: ')
-    number_cust = input('Введите номр телефона клиента например 928483377: ')
+    number_cust = input('Введите номер телефона клиента например 928483377: ')
     recipients = [input('Введите адресс эл-почты клиента например safaroffqodirjon@gmail.com: ')]
+    tovar = input('Введите имя товаров: например телефон, наушники: ').split(',')
+    st1 = ''
+    for i in tovar:
+        st1 += i
+        st1 += ", "
+    tovar = st1[:-2]
+    price = input('Введите стоимость товаров: ')
 
-    user = input(
-        'Введите адресс вашей почты например yagonnafar@gmail.com: \n (рекомендуем вам исползовать тестовый почтовый якшик: ')
+
     info = ''
     errors = []
-    print('!!!Бепул фиристонидани СMC дар 1 руз 1 бор мумкин аст!!!')
+    print('!!!Внимание только раз в день можно отправлять бесплатный СМС!!!')
 
-    key = input('Что бы отправть эл-почту нажмите 0, а СМС 1: ')
+    key = input('Что бы отправить эл-почту нажмите 0, а СМС 1: ')
 
     if str(key) == '0':
+        user = input(
+            'Введите адресс вашей почты например yagonnafar@gmail.com:\n(рекомендуем вам исползовать тестовый якшик):')
+
         server = 'smtp.gmail.com'
         password = input('Введите свой пароль эл-почты: ')
         sender = user
-        text = '<h1>Асалому алайкум мизоҷи муҳтаарам шумо<h1> </b> {} - ро бо нархи <h1 style="color: red">{} сомонӣ</h1><h1 style="color":red>харидори кардед</h1>'.format(
-            tovar,
+        text = '<h1>Асалому алайкум мизоҷи мӯҳтаарам шумо<h1> </b> {} - ро бо нархи <h1 style="color: red">{} сомонӣ</h1><h1 style="color":red>харидори кардед</h1>'.format(
+            tovar[::],
             price)
 
         html = '<html><head></head><body><p>' + text + '</p></body></html>'
@@ -111,11 +117,14 @@ def send_mess():
             msg.attach(part_html)
 
             mail = smtplib.SMTP_SSL(server)
-            mail.login(user, password)
+            try:
+                mail.login(user, password)
+            except TypeError:
+                errors.append('Ошыбака пароля')
             mail.sendmail(sender, recipients, msg.as_string())
             mail.quit()
         except OSError:
-            errors.append('Ошыбка с соединением при отпраке emil')
+            errors.append('Ошыбка с соединением при отпраке email')
 
 
     elif str(key) == '1':
@@ -126,27 +135,38 @@ def send_mess():
                 'key': 'textbelt',
             })
 
-            info = str(resp.json()) + " " + info
+            dct = dict(resp.json())
+
+            # info = "!!!" + str(dct['error']) + "!!! " + info
+            if not dct['success']:
+                errors.append(str("Толко один бесплатный СМС в день" + " >> " + str(dct['error'])))
         except OSError:
-            errors.append('Ошибка соединения при отправке СМС клиенту {}'.format(nom))
+            errors.append('Ошыбка соединения при отправке СМС клиенту {}'.format(nom))
+
 
 
 
     else:
-        print('Танҳо 0 ва 1 дохил кунед')
+        print('Введите только числа 0 или 1')
         errors.append('Неправилный ввод в определение канала')
 
     if len(errors) == 0:
         info += '☻☻☻Все прошло хорошо☺☺☺'
     else:
-        info += 'Были ошибки: ' + str(errors)
+        st = ''
+        for i in errors:
+            st+=i
+            st += ' '
+        info += 'Были ошыбки: ' + st
 
     dt = datetime.datetime.now()
-    db = Db('alifdb')
+    db = Db('AlifDataBase')
     db.create_db(nom=str(nom), number=str(number_cust), email=str(recipients),
                  tovar=str(tovar), price=str(price), dt=str(dt), errors=str(errors))
-
-    return info + "\n !!!все данные о клиенте и об ошыбках сохранены в базе данных!!!"
+    print()
+    print("**********************************************\n")
+    return info + "\n!!!Все данные о клиенте и об ошыбках сохранены в базе данных!!!"
 
 
 print(send_mess())
+
